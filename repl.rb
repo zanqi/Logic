@@ -135,7 +135,11 @@ end
 def apply_a_rule rule, pattern, frame
     clean_rule = rename rule
     result = unify_match pattern, clean_rule[1], frame
-    result == 'failed' ? [] : [result]
+    result == 'failed' ? [] : qeval(rule_body(rule), [result])
+end
+
+def rule_body rule
+    rule.drop(2).empty? ? [:true] : rule.drop(2)
 end
 
 def unify_match p1, p2, frame
@@ -162,11 +166,13 @@ def extend_if_possible var, val, frame
             unify_match var, frame[val], frame
         else
             frame[var] = val
+            frame
         end
     elsif depends_on? val, var, frame
         'failed'
     else
         frame[var] = val
+        frame
     end
 end
 
@@ -184,14 +190,18 @@ def depends_on? exp, var, frame
     end
 end
 
-def rename exp
-    if var? exp
-        
-    elsif exp.is_a?(Array)
-        exp.map { |e| rename e }
-    else
-        exp
-    end
+def rename expression
+    @rule_application_id += 1
+    helper = ->(exp){
+        if var? exp
+            make_new_var exp, @rule_application_id
+        elsif exp.is_a?(Array)
+            exp.map { |e| helper.(e) }
+        else
+            exp
+        end
+    }
+    helper.(expression)
 end
 
 def apply_assertions pattern, frame
@@ -214,7 +224,6 @@ end
 
 def check_an_assertion assertion, query_pat, frame
     result = pattern_match query_pat, assertion, frame
-    p result
     result == "failed" ? [] : [result]
 end
 
@@ -241,6 +250,11 @@ def extend_if_consistent var, dat, frame
     end
 end
 
+def make_new_var var, rule_application_id
+    ['?', rule_application_id] + var.drop(1)
+end
+
+@rule_application_id = 0
 @all_assertions, @all_rules = [], []
 @indexed_assertions, @indexed_rules = Hash.new([]), Hash.new([])
 @built_in = {
