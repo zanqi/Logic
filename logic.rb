@@ -5,8 +5,8 @@ class Logic
         @database = {}
     end
     
-    def install &block
-        @mode = :install
+    def tell &block
+        @mode = :tell
         instance_eval(&block)
         @database
     end
@@ -14,8 +14,11 @@ class Logic
     def query frames = [{}], &block
         @mode = :query
         @frames = frames
-        result = instance_eval(&block)
-        display result, &block
+        instance_eval(&block)
+    end
+
+    def ask &block
+        display query(&block), &block        
     end
 
     def display result, &block
@@ -34,7 +37,7 @@ class Logic
             end
         }
 
-        result.each { |frame| 
+        result.each_with_index { |frame, j|
             @query_vars.each_with_index { |var, i|
                 if i == @query_vars.size-1
                     puts ":#{var} = #{resolve.(var, frame)};"
@@ -42,7 +45,7 @@ class Logic
                     puts ":#{var} = #{resolve.(var, frame)}"
                 end
             }
-            puts
+            puts if j != result.size-1
         }
     end
 
@@ -51,7 +54,7 @@ class Logic
     end
     
     def predicate pred_name, *args, &block
-        if @mode == :install
+        if @mode == :tell
             data = block_given? ? [pred_name, args, block] : [pred_name, args]
             @database[pred_name] = @database[pred_name] ? @database[pred_name] << data : [data] # Could a set help?
         elsif @mode == :query
@@ -145,7 +148,7 @@ class Logic
 end
 
 a = Logic.new
-a.install {
+a.tell {
     mouse 'mickey'
     mouse 'minie'
     pretty 'minie'
@@ -156,4 +159,4 @@ a.install {
     end
 }
 
-a.query { mouse :x }
+a.ask { mouse :x }
