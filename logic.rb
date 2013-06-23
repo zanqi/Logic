@@ -1,3 +1,5 @@
+require "set"
+
 class Logic
     def initialize
         @database = {}
@@ -5,15 +7,47 @@ class Logic
     
     def install &block
         @mode = :install
-        instance_eval &block
+        instance_eval(&block)
         @database
     end
     
     def query frames = [{}], &block
         @mode = :query
-        @rule_application_id = 0
         @frames = frames
-        instance_eval &block
+        result = instance_eval(&block)
+        display result, &block
+    end
+
+    def display result, &block
+        puts "Yes" if result == [{}]
+        puts "No" if result == []
+        @query_vars = Set.new
+        alias method_missing record_var
+        instance_eval(&block)
+        alias method_missing predicate
+
+        resolve = ->(atom, frame){  
+            if atom.is_a? Symbol
+                frame.include?(atom) ? resolve.(frame[atom], frame) : atom
+            else
+                atom
+            end
+        }
+
+        result.each { |frame| 
+            @query_vars.each_with_index { |var, i|
+                if i == @query_vars.size-1
+                    puts ":#{var} = #{resolve.(var, frame)};"
+                else
+                    puts ":#{var} = #{resolve.(var, frame)}"
+                end
+            }
+            puts
+        }
+    end
+
+    def record_var pred_name, *args
+        @query_vars.merge(args.select { |e| e.is_a? Symbol })
     end
     
     def predicate pred_name, *args, &block
@@ -50,7 +84,7 @@ class Logic
     def extend_if_possible var, val, frame
         if frame.has_key? var
             unify_match frame[var], val, frame
-        elsif var? val
+        elsif val.is_a? Symbol
             if frame.has_key? val
                 unify_match var, frame[val], frame
             else
@@ -96,9 +130,9 @@ class Logic
             'failed'
         elsif p1 == p2
             frame
-        elsif var? p1
+        elsif p1.is_a? Symbol
             extend_if_possible p1, p2, frame
-        elsif var? p2
+        elsif p2.is_a? Symbol
             extend_if_possible p2, p1, frame
         elsif p1.is_a?(Array) && p2.is_a?(Array)
             p1.zip(p2).reduce(frame) {|memo,(p_1,p_2)| unify_match p_1, p_2, memo }
@@ -109,3 +143,17 @@ class Logic
     
     alias method_missing predicate
 end
+
+a = Logic.new
+a.install {
+    mouse 'mickey'
+    mouse 'minie'
+    pretty 'minie'
+    funny 'mickey'
+    funny_mouse(:who) do
+        mouse :who
+        funny :who
+    end
+}
+
+a.query { mouse :x }
