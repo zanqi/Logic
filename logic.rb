@@ -15,15 +15,17 @@ class Logic
         @mode = :query
         @frames = frames
         instance_eval(&block)
+        @frames
     end
 
     def ask &block
-        display query(&block), &block        
+        display compute(&block), &block
     end
 
-    def display result, &block
-        puts "Yes" if result == [{}]
-        puts "No" if result == []
+    def compute &block
+        @rule_application_id = 0
+        bindings = query(&block)
+        return bindings if bindings == [] || bindings == [{}]
         @query_vars = Set.new
         alias method_missing record_var
         instance_eval(&block)
@@ -37,16 +39,32 @@ class Logic
             end
         }
 
-        result.each_with_index { |frame, j|
-            @query_vars.each_with_index { |var, i|
-                if i == @query_vars.size-1
-                    puts ":#{var} = #{resolve.(var, frame)};"
+        bindings.map { |frame|  
+            Hash[@query_vars.map { |var| [var, resolve.(var, frame)] }]
+        }
+    end
+
+    def display bindings, &block
+        if bindings == [{}]
+            puts "Yes"
+            return
+        elsif bindings == []
+            puts "No"
+            return
+        else
+        bindings.each_with_index { |frame, i|
+            frame.each_pair.with_index { |(var, val), j|
+                val = val.is_a?(Symbol) ? '_unbound_' : val
+                if j == frame.size-1
+                    puts ":#{var} = #{val};"
                 else
-                    puts ":#{var} = #{resolve.(var, frame)}"
+                    puts ":#{var} = #{val}"
                 end
             }
-            puts if j != result.size-1
+            puts if i != bindings.size-1
         }
+            
+        end
     end
 
     def record_var pred_name, *args
@@ -61,19 +79,35 @@ class Logic
             @frames = [] if not @database.include? pred_name
             return if @frames == []
             @frames = @frames.flat_map do |frame|
-                @database[pred_name].flat_map do |assertion|
-                    if not assertion[-1].is_a? Proc
-                        match_result = pattern_match args, assertion[1], frame
-                        # p args, assertion[1], frame, match_result
+                @database[pred_name].flat_map do |entry|
+                    if not entry[-1].is_a? Proc
+                        match_result = pattern_match args, entry[1], frame
+                        # p args, entry[1], frame, match_result
                         match_result == 'failed' ? [] : [match_result]
                     else
                         # Need to rename var
-                        unify_result = unify_match args, assertion[1], frame
-                        unify_result == 'failed' ? [] : query([unify_result], &assertion[-1])
+                        clean_rule = rename_rule entry
+                        unify_result = unify_match args, clean_rule[1], frame
+                        unify_result == 'failed' ? [] : query([unify_result], &clean_rule[-1])
                     end
                 end
             end
         end
+    end
+
+    def rename_rule rule
+        @rule_application_id += 1
+        vars = rule[1].map { |var| var.is_a?(Symbol) ? "#{var}#{@rule_application_id}".to_sym : var }
+        @rule_body = ""
+        alias method_missing rename_rule_body
+        instance_eval(&rule[-1])
+        alias method_missing predicate
+        [rule[0], vars, eval("Proc.new { #{@rule_body} }")]
+    end
+
+    def rename_rule_body pred_name, *args
+        new_vars = args.map { |arg| arg.is_a?(Symbol) ? ":#{arg}#{@rule_application_id}" : arg }
+        @rule_body << "#{pred_name} #{new_vars.join(', ')};"
     end
 
     def extend_if_consistent var, dat, frame
@@ -101,7 +135,7 @@ class Logic
     end
     
     def depends_on? exp, var, frame
-        if exp.is_a Symbol
+        if exp.is_a? Symbol
             if var == exp
                 true
             else
@@ -157,6 +191,7 @@ a.tell {
         mouse :who
         funny :who
     end
+    love(:everyone, 'mickey') {}
 }
 
-a.ask { mouse :x }
+a.ask { pretty :x; love :y, 'mickey' }
