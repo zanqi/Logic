@@ -19,7 +19,7 @@ class Logic
     end
 
     def ask &block
-        display compute(&block), &block
+        display compute(&block)
     end
 
     def compute &block
@@ -27,9 +27,8 @@ class Logic
         bindings = query(&block)
         return bindings if bindings == [] || bindings == [{}]
         @query_vars = Set.new
-        alias method_missing record_var
+        @mode = :record_vars
         instance_eval(&block)
-        alias method_missing predicate
 
         resolve = ->(atom, frame){  
             if atom.is_a? Symbol
@@ -44,7 +43,7 @@ class Logic
         }
     end
 
-    def display bindings, &block
+    def display bindings
         if bindings == [{}]
             puts "Yes"
             return
@@ -61,14 +60,10 @@ class Logic
                     puts ":#{var} = #{val}"
                 end
             }
-            puts if i != bindings.size-1
+            # puts if i != bindings.size-1
         }
             
         end
-    end
-
-    def record_var pred_name, *args
-        @query_vars.merge(args.select { |e| e.is_a? Symbol })
     end
     
     def predicate pred_name, *args, &block
@@ -92,6 +87,11 @@ class Logic
                     end
                 end
             end
+        elsif @mode == :rename_vars
+            new_vars = args.map { |arg| arg.is_a?(Symbol) ? ":#{arg}#{@rule_application_id}" : arg }
+            @rule_body << "#{pred_name} #{new_vars.join(', ')};"
+        elsif @mode == :record_vars
+            @query_vars.merge(args.select { |e| e.is_a? Symbol })
         end
     end
 
@@ -99,15 +99,9 @@ class Logic
         @rule_application_id += 1
         vars = rule[1].map { |var| var.is_a?(Symbol) ? "#{var}#{@rule_application_id}".to_sym : var }
         @rule_body = ""
-        alias method_missing rename_rule_body
+        @mode = :rename_vars
         instance_eval(&rule[-1])
-        alias method_missing predicate
         [rule[0], vars, eval("Proc.new { #{@rule_body} }")]
-    end
-
-    def rename_rule_body pred_name, *args
-        new_vars = args.map { |arg| arg.is_a?(Symbol) ? ":#{arg}#{@rule_application_id}" : arg }
-        @rule_body << "#{pred_name} #{new_vars.join(', ')};"
     end
 
     def extend_if_consistent var, dat, frame
@@ -195,3 +189,4 @@ a.tell {
 }
 
 a.ask { pretty :x; love :y, 'mickey' }
+a.ask { mouse :all }
