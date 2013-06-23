@@ -1,9 +1,9 @@
 Logic
 =====
 
-Logic DSL
+Overview
 ---------
-Logic provides a simple syntax for logic programming.
+Logic provides a simple syntax DSL for logic programming.
 ```ruby
 require 'logic'
 database = Logic.new
