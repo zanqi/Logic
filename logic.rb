@@ -186,7 +186,32 @@ a.tell {
         funny :who
     end
     love(:everyone, 'mickey') {}
+    fruit('banana') {}
+    fruit('apple') {}
+}
+a.tell {
+    mother_child 'trude', 'sally'
+    
+    father_child 'tom', 'sally'
+    father_child 'tom', 'erica'
+    father_child 'mike', 'tom'
+    
+    parent_child(:x, :y){ father_child :x, :y }
+    parent_child(:x, :y){ mother_child :x, :y }
+    
+    sibling(:x, :y) {
+        parent_child :z, :x
+        parent_child :z, :y
+    }
+}
+a.tell {
+    married 'minie', 'mickey'
+    married(:x, :y) { married :y, :x }
 }
 
-a.ask { pretty :x; love :y, 'mickey' }
-a.ask { mouse :all }
+# a.ask { mouse :x; love :y, :x }
+# a.ask { mouse :all }
+# a.ask { fruit :x }
+# a.ask { sibling 'sally', :x }
+# a.ask { parent_child :parent, :child }
+a.ask { married 'minie', :who }
