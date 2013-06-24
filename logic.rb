@@ -2,7 +2,7 @@ require "set"
 
 class Logic
     def initialize
-        @database = {}
+        @database = Hash.new { |h, k| h[k]=[] }
     end
     
     def tell &block
@@ -67,7 +67,7 @@ class Logic
     def predicate pred_name, *args, &block
         if @mode == :tell
             data = block_given? ? [pred_name, args, block] : [pred_name, args]
-            @database[pred_name] = @database[pred_name] ? @database[pred_name] << data : [data] # Could a set help?
+            @database[pred_name] << data # Could a set help?
         elsif @mode == :query
             @frames = [] if not @database.include? pred_name
             return if @frames == []
