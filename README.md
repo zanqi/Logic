@@ -65,7 +65,7 @@ Outputs:
 =>
 Yes
 ```
-Again, ```symbol``` is treated as variable.
+Again, ```Symbol``` is treated as variable.
 ```ruby
 database.ask { salary 'Ben', :x }
 ```
