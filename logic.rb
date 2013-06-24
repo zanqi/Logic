@@ -44,14 +44,15 @@ class Logic
     end
 
     def display bindings
-        if bindings == [{}]
-            puts "Yes"
-            return
-        elsif bindings == []
-            puts "No"
-            return
-        else
-        bindings.each_with_index { |frame, i|
+        puts '=>'
+        begin
+            bindings.peek
+        rescue StopIteration
+            puts 'No'
+        end
+
+        bindings.each { |frame|
+            puts 'Yes' if frame == {}
             frame.each_pair.with_index { |(var, val), j|
                 val = val.is_a?(Symbol) ? '_unbound_' : val
                 if j == frame.size-1
@@ -60,10 +61,7 @@ class Logic
                     puts ":#{var} = #{val}"
                 end
             }
-            # puts if i != bindings.size-1
         }
-            
-        end
     end
     
     def predicate pred_name, *args, &block
@@ -73,8 +71,8 @@ class Logic
         elsif @mode == :query
             @frames = [] if not @database.include? pred_name
             return if @frames == []
-            @frames = @frames.flat_map do |frame|
-                @database[pred_name].flat_map do |entry|
+            @frames = @frames.lazy.flat_map do |frame|
+                @database[pred_name].lazy.flat_map do |entry|
                     if not entry[-1].is_a? Proc
                         match_result = pattern_match args, entry[1], frame
                         # p args, entry[1], frame, match_result
@@ -209,9 +207,11 @@ a.tell {
     married(:x, :y) { married :y, :x }
 }
 
-# a.ask { mouse :x; love :y, :x }
-# a.ask { mouse :all }
-# a.ask { fruit :x }
-# a.ask { sibling 'sally', :x }
-# a.ask { parent_child :parent, :child }
-a.ask { married 'minie', :who }
+a.ask { funny_mouse 'minie' }
+a.ask { mouse 'mickey' }
+a.ask { mouse :x; love :y, :x }
+a.ask { mouse :all }
+a.ask { fruit :x }
+a.ask { sibling 'sally', :x }
+a.ask { parent_child :parent, :child }
+a.ask { married 'mickey', :who }
