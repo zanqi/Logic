@@ -52,7 +52,7 @@ database.tell do
     end
 end
 ```
-This states ":x is rich if the salary of :x is 1000 and :x has a dog"
+This states ":x is super_rich if the salary of :x is 1000 and :x has_a_dog"
 
 Query
 ------
