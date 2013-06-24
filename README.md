@@ -32,7 +32,7 @@ Get Started
 
 Input
 --------
-Entering data into the database is by providing a block to the ```tell``` method. Like Prolog, Logic supports two data types: fact and rule.
+Entering data into the database is by providing a block to the ```tell``` method. Like Prolog, Logic supports two data types: fact and rule.  
 **Fact**: Logic use a method call and its arguments to represent Fact in Prolog.
 ```ruby
 database.tell { salary 'Ben', 1000 }
