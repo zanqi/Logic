@@ -25,7 +25,11 @@ class Logic
     def compute &block
         @rule_application_id = 0
         bindings = query(&block)
-        return bindings if bindings == [] || bindings == [{}]
+        begin
+            bindings.peek
+        rescue StopIteration
+            return []
+        end
         @query_vars = Set.new
         @mode = :record_vars
         instance_eval(&block)
@@ -45,11 +49,7 @@ class Logic
 
     def display bindings
         puts '=>'
-        begin
-            bindings.peek
-        rescue StopIteration
-            puts 'No'
-        end
+        puts 'No' if bindings == [] 
 
         bindings.each { |frame|
             puts 'Yes' if frame == {}
