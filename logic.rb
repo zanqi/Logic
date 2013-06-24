@@ -75,10 +75,8 @@ class Logic
                 @database[pred_name].lazy.flat_map do |entry|
                     if not entry[-1].is_a? Proc
                         match_result = pattern_match args, entry[1], frame
-                        # p args, entry[1], frame, match_result
                         match_result == 'failed' ? [] : [match_result]
                     else
-                        # Need to rename var
                         clean_rule = rename_rule entry
                         unify_result = unify_match args, clean_rule[1], frame
                         unify_result == 'failed' ? [] : query([unify_result], &clean_rule[-1])
